@@ -12,8 +12,8 @@ function getDiscogs(nameSearch, artistSearch) {
         }).database();
 
         // Test search data
-        var nameSearch = "pulsar";
-        var artistSearch = "almunia"
+        // var nameSearch = "pulsar";
+        // var artistSearch = "almunia"
 
         // Get master information first, then look up versions
         disco.search( {}, {
