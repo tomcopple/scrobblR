@@ -1,0 +1,89 @@
+extends layout
+
+block content
+    script(type='text/javascript' src="https://cdn.jsdelivr.net/npm/sweetalert2@7.26.9/dist/sweetalert2.all.min.js")
+    script(type='text/javascript' src='/javascripts/deleteAlbum.js')
+
+    unless message===undefined
+        - console.log(message)
+        script(src="https://cdn.jsdelivr.net/npm/sweetalert2@7.26.9/dist/sweetalert2.all.min.js")
+        script.
+            var msg = !{JSON.stringify(message)};
+            Swal(msg);
+
+    h1 #{title}
+
+    if subtitle
+        h3 #{subtitle}
+
+    - console.log(edit) 
+    form(method='POST' action= edit ? album.url+'/edit' : '/catalog/addAlbum')
+        div.form-group
+            .row.flex-row-reverse
+                .col-md-4
+                    img#albumArt.img-fluid.img-thumbnail.rounded.mx-auto.d-block(style="max-width: 200px;" src='/images/albums/' + album._id + '.png') 
+                .col-md-8
+                    input#id.form-control(type='hidden' name='id' value=(undefined===album ? '' : album._id))
+                    label(for='name') Album:
+                    input#name.form-control(type='text', placeholder="Album name" name="name" value=(undefined===album ? '' : album.name))
+                    label(for="artist") Artist: 
+                    input#artist.form-control(type='text', placeholder="Artist name" name="artist" value=(undefined===album ? '' : album.artist))
+                    -
+                        if(undefined!==album.tracks) {
+                            var sides = album.tracks.map(a => a.track_side)
+                            sides = [...new Set(sides)]
+                            album.tracks.map(x => {
+                                x.time = Math.floor(x.track_length/60).toString() + ":" + Math.round(x.track_length % 60).toString().padStart(2, "0");
+                            })
+                        }
+            
+            #Sides(style="position: relative;")
+                - console.log(sides!==undefined)
+                br
+                if sides!==undefined 
+                    each side in sides
+                        .side
+                            .row.justify-content-between.my-2
+                                input#side.form-control(type='text', style="width: auto;" placeholder="Side" name="side" value =(undefined===side ? '' : 'Side ' + side) readonly)  
+                                button.btn-danger.btn.btn-sm.remove-side(type="button" style="height: max-content;") Delete side
+                            each track, index in album.tracks
+                                if track.track_side == side
+                                    .row
+                                        input#sideHidden.form-control(type='hidden', name='trackSide' value=side)
+                                        .col-2.px-0
+                                            input#trackNum.form-control(type='text', placeholder="Track" + index name="trackNum" value=(undefined===track.track_number ? '' : track.track_number))
+                                        .col.px-0
+                                            input#trackName.form-control(type='text',placeholder="Track name" name="trackName" value=(undefined===track.track_name ? '' : track.track_name))
+                                        .col-2.px-0
+                                            input#trackLength.form-control(type='text',  placeholder="Track length" name="trackLength" value=(undefined===track.time ? '' : track.time))
+                            hr
+                else 
+                    label(for='side')
+                    input#side.form-control(type='text', placeholder="Side A" name="side" value ='')
+                    each track, index in album.tracks
+                        div(style="display:table;")
+                            div(style="display:table-cell;") 
+                                input#trackNum.form-control(type='text', placeholder='Track ' + val, name="trackNum" value = index)
+                            div(style="display:table-cell;")
+                                input#trackName.form-control(type='text', placeholder="Track name" name="trackName" value = '')
+                            div(style="display:table-cell;")
+                                input#trackLength.form-control(type='text', placeholder="Track length" name="trackLength" value = '')
+                    hr
+                    
+        button.btn.btn-primary.mx-2.px-2(type='submit') Submit
+        button.btn.btn-danger.mx-2.px-2(type='button' onclick=`deleteAlbum(${JSON.stringify(album)})`) Delete album
+        //- a.btn.btn-danger.mx-1.px-1(href=album.url+'/delete') Delete album
+
+
+    if errors 
+        hr
+        ul
+          for error in errors
+            li!= error.msg
+
+    script(type="text/javascript").
+        $(document).ready(function() {
+            $('.remove-side').click(function() {
+                $(this).parent().parent().remove();
+            })
+        });

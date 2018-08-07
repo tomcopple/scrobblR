@@ -1,0 +1,71 @@
+doctype html
+html(lang='en')
+  head
+    title= title
+    meta(charset='utf-8')
+    meta(name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no")
+
+    <!-- jQuery CDN - Slim version (=without AJAX) -->
+    //- script(src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous")
+    <!-- Popper.JS -->
+    script(src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js" integrity="sha384-cs/chFZiN24E4KMATLdqdvsezGxaGsi4hLGOzlXwp5UZB1LY//20VyM2taTB4QvJ" crossorigin="anonymous")
+    <!-- Bootstrap JS -->
+    script(src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js" integrity="sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm" crossorigin="anonymous")
+    <!-- jQuery Custom Scroller CDN -->
+    script(src="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.5/jquery.mCustomScrollbar.concat.min.js")
+
+    script(src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js")
+
+    link(rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous")
+    link(href="https://fonts.googleapis.com/css?family=Catamaran|Lato|Muli" rel="stylesheet")
+    link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.5/jquery.mCustomScrollbar.min.css")
+
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    link(type='text/css' rel='stylesheet' href='https://cdn.jsdelivr.net/npm/sweetalert2@6.6.2/dist/sweetalert2.min.css')
+
+    link(rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous")
+    script(defer src="https://use.fontawesome.com/releases/v5.2.0/js/all.js" integrity="sha384-4oV5EgaV02iISL2ban6c/RmotsABqE4yZxZLcYMAdG7FAPsyHYAPpywE9PJo+Khy" crossorigin="anonymous")
+
+    //- Trying material design lite
+
+  body
+    .wrapper
+        nav#sidebar
+            .sidebar-header 
+                h3 
+            ul.list-unstyled.components
+                li.active
+                    a(href="/catalog")
+                        i.fa.fa-home 
+                        span &nbsp&nbspHome
+
+                li
+                    a(href='/catalog/albums') 
+                        i.fa.fa-play
+                        span &nbsp&nbspAll albums
+                li
+                    a(href='/catalog/artists') 
+                        i.fa.fa-music
+                        span &nbsp&nbspAll artists
+                    hr
+                li
+                    a(href='/catalog/album/create') 
+                        i.fa.fa-plus-circle
+                        span &nbsp&nbspAdd new album
+        div#content
+            nav.navbar.navbar-expand-lg.navbar-light
+                .container-fluid
+                    button.btn.btn-info#sidebarCollapse(type='button')
+                        i.fa.fa-bars 
+                        //- span Toggle
+                        //- span Toggle Sidebar
+            block content
+            
+
+script(type="text/javascript").
+    $(document).ready(function () {
+        $('#sidebarCollapse').on('click', function () {
+            $('#sidebar').toggleClass('active');
+            $('#content').toggleClass('active');
+        });
+    });

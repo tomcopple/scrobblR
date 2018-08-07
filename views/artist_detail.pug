@@ -1,0 +1,16 @@
+extends layout
+
+block content    
+    h1 Artist: #{title}
+
+    div(style='margin-left:20px;margin-top:20px')
+
+        h4 Albums
+
+        dl
+            each album in albums
+                dt 
+                    a(href=album.url)  #{album.name}
+            
+            else 
+                p No albums found

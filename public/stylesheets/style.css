@@ -1,0 +1,240 @@
+div.form-group {
+    margin-bottom: 0px !important;
+}
+
+/* Homepage album art should start hidden and fade in; maybe reduce size of covers? */
+.albumTiles {
+    opacity: 0;
+    max-width: 200px;
+    max-height: 200px;
+}
+
+/* only last delete side button should be visible */
+.side .row button {
+    display: none;
+}
+.side:last-of-type .row button {
+    display: inline-block;
+}
+
+body {
+    font-family: 'Lato', sans-serif;
+    background: #fafafa;
+}
+
+p {
+    font-family: 'Lato', sans-serif;
+    font-size: 1.1em;
+    font-weight: 300;
+    line-height: 1.7em;
+    color: #333;
+}
+
+a, a:hover, a:focus {
+    color: inherit;
+    /* text-decoration: underline; */
+    transition: all 0.3s;
+}
+
+
+ /* Test sidebar */
+ .wrapper {
+     display: flex;
+     align-items: stretch;
+ }
+
+#sidebar {
+    min-width: 250px;
+    max-width: 250px;
+    top: 0;
+    background: #7386D5;
+    color: #fff;
+    transition: all 0.3s;
+}
+
+#sidebar.active {
+    min-width: 60px;
+    max-width: 60px;
+    text-align: center;
+}
+
+
+#sidebar .active .sidebar-header h3,
+#sidebar .active .CTAs {
+    display: none;
+}
+
+#sidebar.active .sidebar-header strong {
+    display: block;
+}
+#sidebar ul li a {
+    text-align: left;
+}
+#sidebar.active ul li a span {
+    display: none;
+    /* padding: 20px 10px;
+    text-align: center;
+    font-size: 0.85em; */
+}
+#sidebar.active ul li a i {
+    text-align: center;
+    /* margin-right: 0; */
+    /* display: block; */
+    font-size: 1.8em;
+    margin-bottom: 5px;
+}
+
+#sidebar.active ul ul a {
+    padding: 10px !important;
+}
+
+
+#sidebar .sidebar-header {
+    padding: 20px;
+    background: #6d7fcc;
+}
+#sidebar .sidebar-header strong {
+    display: none;
+    font-size: 1.8em;
+}
+
+#sidebar ul.components {
+    padding: 20px 0;
+    border-bottom: 1px solid #47748b;
+}
+
+#sidebar ul li a {
+    padding: 10px;
+    font-size: 1.1em;
+    display: block;
+}
+#sidebar ul li a:hover {
+    color: #7386D5;
+    background: #fff;
+}
+
+#sidebar ul li a i {
+    margin-right: 10px;
+}
+
+#sidebar ul li.active > a, a[aria-expanded="true"] {
+    color: #fff;
+    background: #6d7fcc;
+}
+
+a[data-toggle="collapse"] {
+    position: relative;
+}
+
+ul ul a {
+    font-size: 0.9em !important;
+    padding-left: 30px !important;
+    background: #6d7fcc;
+}
+
+a.download {
+    background: #fff;
+    color: #7386D5;
+}
+
+a.article,
+a.article.hover {
+    background: #6d7fcc !important;
+    color: #fff !important;
+}
+
+#content {
+    width: 100%;
+    padding: 50px;
+    min-height: 100vh;
+    transition: all 0.3s;
+}
+
+@media (max-width: 751px) {
+    #content.active img.albumTiles {
+        max-width: 125px;
+        max-height: 125px;
+    }
+
+    .albumTiles {
+        max-width: 150px;
+        max-height: 150px;
+    }
+
+    #sidebar {
+        min-width: 180px;
+        max-width: 180px;
+    }
+}
+
+@media (max-width: 420px) {
+
+    .svg-inline--fa {
+        display: block !important;
+        margin: auto !important;
+    }
+
+    #content #buttons div a,
+    #content #buttons div button {
+        font-size: 0.9em;
+    }
+
+    #content.active {
+        max-width: 351px;
+    }
+
+    #content.active img.albumTiles {
+        max-width: 125px;
+        max-height: 125px;
+    }
+
+    .albumTiles {
+        max-width: 150px;
+        max-height: 150px;
+    }
+    #albumArt {
+        margin-right: auto;
+        margin-bottom: 50px;
+        max-width: 200px;
+        max-height: 200px;
+    }
+    #sidebar {
+        min-width: 60px;
+        max-width: 60px;
+        text-align: center;
+        margin-left: -60px !important;
+    }
+    
+    #sidebar.active {
+        margin-left: 0 !important;
+    }
+    #sidebar .sidebar-header h3 {
+        display: none;
+    }
+    #sidebar .active ul li 
+    #sidebar .sidebar-header strong {
+        display: block;
+    }
+    #sidebar ul li a {
+        padding: 20px 10px;
+    }
+    #sidebar ul li a span {
+        font-size: 0.85em;
+    }
+    #sidebar ul li a i {
+        margin-right: 0;
+        display: block;
+    }
+    #sidebar ul ul a {
+        padding: 10px !important;
+    }
+    #sidebar ul li a i {
+        font-size: 1.3em;
+    }
+    #sidebar {
+        margin-left: 0;
+    }
+    #sidebarCollapse span {
+        display: none;
+    }
+}

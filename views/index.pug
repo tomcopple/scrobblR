@@ -1,0 +1,22 @@
+extends layout
+
+block content
+    unless message===undefined
+    - console.log(message)
+    script(src="https://cdn.jsdelivr.net/npm/sweetalert2@7.26.9/dist/sweetalert2.all.min.js")
+    script.
+        var msg = !{JSON.stringify(message)};
+        Swal(msg);
+        
+    h1= title
+
+    .homepage
+        each album in albums
+            a(href='/catalog/album/' + album._id)
+                img.albumTiles.img-fluid.img-thumbnail.rounded.mx-auto(src='/images/albums/' + album._id + '.png') 
+
+
+    if error
+        p Error getting  content.
+
+    script(src='javascripts/animateTiles.js')
