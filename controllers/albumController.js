@@ -7,13 +7,16 @@ const fs = require('fs');
 const request = require('request');
 mongoose.Promise = global.Promise;
 
-// Try to download album art
-const albumArt = require('album-art');
+var Discogs = require('disconnect').Client;
+var disco = new Discogs({
+    consumerKey: 'tntYcZOONAfknUxUXTzu',
+    consumerSecret: 'YEOiVPFsvtpIfuZoGzFvEgOXFOmoiZEf'
+}).database();
 
-// Import some functions to get album info
+// Try to download album art
+
 var getDiscogs = require('../albums/getDiscogs.js');
 var getSpotify = require('../albums/getSpotify.js');
-var getAlbumData = require('../albums/getAlbumData.js')
 
 const { body, validationResult } = require('express-validator/check');
 const { sanitizeBody } = require('express-validator/filter');
@@ -85,7 +88,7 @@ exports.album_create_post = [
             res.render('album_form', { title: 'Add new album', album: name, errors: errors.array() });
             return;
         } else {
-            getAlbumData(req.body.name, req.body.artist)
+            getDiscogs(req.body.name, req.body.artist)
                 .then((results) => {
                     // Check if album already exists
                     Album.findOne({
@@ -106,35 +109,51 @@ exports.album_create_post = [
                                 });
                                 return;
                             } else {
-                                console.log(results.album);
+                                console.log("New album info: " + JSON.stringify(results.album, null, 2));
+                                console.log("Album art at " + results.albumArt);
 
                                 // If it doesn't already exist, create a new album
                                 var newAlbum = new Album(results.album)
 
-                                // Download album art from the image link
-                                var download = function (url, filename, callback) {
-                                    request.head(url, function (err, res, body) {
-                                        request(url).pipe(fs.createWriteStream(filename)).on('close', callback);
+                                // Download album art from the image link. Ugh, needs a different function for discogs
+                                if (/discogs/.test(results.albumArt)) {
+                                    disco.getImage(results.albumArt, function (err, data) {
+                                        fs.writeFile('./public/images/albums/' + newAlbum._id + '.png', data, 'binary', function () {
+                                            console.log('Downloaded album art for ' + newAlbum.name);
+                                            res.render('album_form_filled', {
+                                                title: "Is this correct?",
+                                                album: newAlbum
+                                            })
+                                        })
+                                    })
+                                } else {
+                                    var download = function (url, filename, callback) {
+                                        request.head(url, function (err, res, body) {
+                                            request(url).pipe(fs.createWriteStream(filename)).on('close', callback);
+                                        });
+                                    }
+                                    var filename = "./public/images/albums/" + newAlbum._id + '.png';
+                                    download(results.albumArt, filename, function () {
+                                        console.log('Downloaded album art for ' + newAlbum.name);
+                                        res.render('album_form_filled', {
+                                            title: "Is this correct?",
+                                            album: newAlbum
+                                        })
                                     });
                                 }
-                                var filename = "./public/images/albums/" + newAlbum._id + '.png';
-                                download(results.albumArt, filename, function () {
-                                    console.log('Downloaded album art for ' + newAlbum.name);
-                                    res.render('album_form_filled', {
-                                        title: "Is this correct?",
-                                        album: newAlbum
-                                    })
-                                });
+
+
+
 
                             }
                         })
                 })
                 .catch((err) => {
-                    console.log("Error in GetAlbumData " + JSON.stringify(err, null, 2));
+                    console.log("Error in getDiscogs " + JSON.stringify(err, null, 2));
                     res.render('album_form', {
                         title: "Add new album",
                         message: "No album found, please try again"
-                        })
+                    })
                 })
         }
     }
@@ -191,7 +210,7 @@ exports.addAlbum = [
                         album: newAlbum
                     });
                 });
-            }
+        }
     }
 ]
 
@@ -293,62 +312,16 @@ exports.album_reset = function (req, res) {
     Album
         .findById(req.params.id)
         .exec(function (err, result) {
-            async.parallel({
-                discogs: function (callback) {
-                    getDiscogs(result.name, result.artist)
-                        .then(function (results) {
-                            console.log("New Discogs info: " + results.name);
-                            callback(null, results);
-                        })
-                        .catch((err) => {
-                            console.log("Error found in Discogs function, probably no album found");
-                            callback(err, null);
-                        })
-                },
-                spotify: function (callback) {
-                    getSpotify(result.name, result.artist)
-                        .then(function (results) {
-                            console.log("New Spotify info: " + results.name)
-                            callback(null, results)
-                        })
-                        .catch((err) => {
-                            console.log("Error found in Spotify function, probably no album found");
-                            callback(err, null);
-                        })
-                }
-            }, function (err, results) {
-                if (err) {
-                    res.render('album_form_filled', {
-                        title: "Album not found, please fill in manually",
-                        album: {
-                            name: album.name,
-                            artist: album.artist,
-                            tracks: [],
-                            edit: false,
 
-                        },
-                        message: "Album not found, please fill in manually"
-                    });
-                    return;
-                } else {
-                    var newAlbum = results.discogs;
-                    newAlbum.tracks.map(function (track, index) {
-                        track.track_length = results.spotify[index]
-                    });
-                    console.log(req.params.id);
-                    Album.
-                        findById(req.params.id).
-                        exec(function (err, res) {
-                            console.log(res._id)
-                        })
-
-                    // Update database before doing anything else
+            getDiscogs(result.name, result.artist)
+                .then((results) => {
                     var newAlbum = new Album({
                         _id: req.params.id,
-                        name: newAlbum.name,
-                        artist: newAlbum.artist,
-                        tracks: newAlbum.tracks
-                    })
+                        name: results.album.name,
+                        artist: results.album.artist,
+                        tracks: results.album.tracks
+                    });
+
                     Album
                         .findByIdAndUpdate(req.params.id, newAlbum, {}, function (err) {
                             if (err) {
@@ -362,8 +335,20 @@ exports.album_reset = function (req, res) {
                                 edit: false
                             })
                         })
-                }
-            });
+                })
+                .catch((err) => {
+                    res.render('album_form_filled', {
+                        title: "Album not found, please fill in manually",
+                        album: {
+                            name: result.name,
+                            artist: result.artist,
+                            tracks: [],
+                            edit: false
+                        },
+                        message: "Album not found, please fill in manually"
+                    });
+                    return;
+                })
         })
 
 }

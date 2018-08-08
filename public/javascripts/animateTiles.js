@@ -6,6 +6,6 @@ $(document).ready(function() {
         }, {
             duration: timer
         });
-        timer = timer + 250;
+        timer = timer + 100;
     })
 })

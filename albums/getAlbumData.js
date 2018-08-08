@@ -29,6 +29,11 @@ function getAlbumData(albumName, artistName) {
             }
         }, function (err, results) {
             if (err) {
+                // If error is Spotify, try to get track times and artwork from Discogs?
+                if(err == "Spotify") {
+                    
+                }
+
                 console.log("Error in getAlbumData " + err);
                 reject(err);
             } else {
@@ -42,9 +47,6 @@ function getAlbumData(albumName, artistName) {
                 if (results.discogs.tracks.length !== results.spotify.trackList.length) {
                     console.log("Reducing album to " + minTracks + " tracks.")
                 }
-
-                // newAlbum.albumArt = results.spotify.albumArt
-                // console.log("About to resolve " + JSON.stringify(newAlbum, null, 2));
                 
                 resolve({
                     album: newAlbum,
