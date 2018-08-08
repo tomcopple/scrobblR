@@ -42,10 +42,7 @@ block content
         .col.px-0
             button.btn.btn-success.mx-1.px-1(type='button' onclick=`pickSide(${JSON.stringify(album)})`) Scrobble!
 
-    script(src="/javascripts/Vibrant.min.js")
+    script(src="/javascripts/vibrant.min.js")
     script.
-        var albumArt = document.getElementById('albumArt');
-        var container = document.getElementById("content");
-        var vibrant = new Vibrant(albumArt);
-        var swatches = vibrant.swatches();
-        container.style.backgroundColor = "rgba(" + swatches.Vibrant.rgb.join(",") + ",0.5)";
+        var paletteNew = [];
+        Vibrant.from(`/images/albums/!{album._id}.png`).getPalette().then(function(palette) { console.log(palette); console.log(palette.Vibrant._rgb); document.getElementById("content").style.backgroundColor = "rgba(" + palette.Vibrant._rgb.join(",") + ",0.5"; });
