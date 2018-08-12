@@ -7,6 +7,9 @@ const request = require('request');
 mongoose.Promise = global.Promise;
 
 var getDiscogs = require('../albums/getDiscogs.js');
+var setDiscogs = require('../api/setDiscogs');
+var Discogs = require('disconnect').Client;
+var disco = new Discogs(setDiscogs).database();
 var getAlbumData = require('../albums/getAlbumData');
 
 const { body, validationResult } = require('express-validator/check');
