@@ -5,16 +5,14 @@ function getDiscogs(nameSearch, artistSearch) {
 
     var getSpotify = require('./getSpotify.js');
     var async = require('async');
+    var setDiscogs = require('../api/setDiscogs.api');
 
     // Define a bunch of functions?
 
     return new Promise((resolve, reject) => {
         // Authenticate
         var Discogs = require('disconnect').Client;
-        var disco = new Discogs({
-            consumerKey: 'tntYcZOONAfknUxUXTzu',
-            consumerSecret: 'YEOiVPFsvtpIfuZoGzFvEgOXFOmoiZEf'
-        }).database();
+        var disco = new Discogs(setDiscogs).database();
 
         // Test search data
         // var nameSearch = "tired sounds";
