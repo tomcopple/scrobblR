@@ -45,4 +45,11 @@ block content
     script(src="/javascripts/vibrant.min.js")
     script.
         var paletteNew = [];
-        Vibrant.from(`/images/albums/!{album._id}.png`).getPalette().then(function(palette) { console.log(palette); console.log(palette.Vibrant._rgb); document.getElementById("content").style.backgroundColor = "rgba(" + palette.Vibrant._rgb.join(",") + ",0.5"; });
+        Vibrant.
+        from(`/images/albums/!{album._id}.png`)
+        .getPalette()
+        .then(function(palette) { 
+            console.log(palette); 
+            console.log(palette.Vibrant._rgb); 
+            document.getElementById("content").style.backgroundColor = "rgba(" + palette.Vibrant._rgb.join(",") + ",0.5"; 
+            });

@@ -1,6 +1,6 @@
 var timer = 1000;
 $(document).ready(function() {
-    $(".albumTiles").each(function(x) {
+    $(".albumTiles").each(function() {
         $(this).animate({
             opacity: 1,
         }, {

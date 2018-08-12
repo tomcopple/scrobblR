@@ -1,29 +1,18 @@
 // album Controller
 var Album = require('../models/albums.js')
-var async = require('async');
 var LastfmAPI = require('lastfmapi');
 var mongoose = require('mongoose');
 const fs = require('fs');
 const request = require('request');
 mongoose.Promise = global.Promise;
 
-var Discogs = require('disconnect').Client;
-var disco = new Discogs({
-    consumerKey: 'tntYcZOONAfknUxUXTzu',
-    consumerSecret: 'YEOiVPFsvtpIfuZoGzFvEgOXFOmoiZEf'
-}).database();
-
-// Try to download album art
-
 var getDiscogs = require('../albums/getDiscogs.js');
-var getSpotify = require('../albums/getSpotify.js');
+var getAlbumData = require('../albums/getAlbumData');
 
 const { body, validationResult } = require('express-validator/check');
 const { sanitizeBody } = require('express-validator/filter');
 
 exports.index = function (req, res) {
-
-    // console.log("Req: " + req.params);
 
     Album
         .find({}, 'name artist _id')
@@ -88,12 +77,15 @@ exports.album_create_post = [
             res.render('album_form', { title: 'Add new album', album: name, errors: errors.array() });
             return;
         } else {
-            getDiscogs(req.body.name, req.body.artist)
+            getAlbumData(req.body.name, req.body.artist)
                 .then((results) => {
+                    console.log("Check if album already exists");
+                    // console.log(results);
+
                     // Check if album already exists
                     Album.findOne({
-                        'name': results.album.name,
-                        'artist': results.album.artist
+                        'name': results.name,
+                        'artist': results.artist
                     })
                         .exec((err, found_album) => {
                             if (err) {
@@ -101,55 +93,57 @@ exports.album_create_post = [
                                 return
                             }
                             if (found_album) {
-                                // console.log("Found an existing album " + found_album);
+                                console.log("Found an existing album " + found_album);
                                 res.render('album_detail', {
                                     message: "Album already exists in database, redirecting...",
                                     title: "Album",
                                     album: found_album
                                 });
-                                return;
                             } else {
-                                console.log("New album info: " + JSON.stringify(results.album, null, 2));
-                                console.log("Album art at " + results.albumArt);
+                                console.log("New album info: " + JSON.stringify(results, null, 2));
 
-                                // If it doesn't already exist, create a new album
-                                var newAlbum = new Album(results.album)
+                                res.render('album_form_filled', {
+                                    title: "Is this correct?",
+                                    album: {
+                                        name: results.name,
+                                        artist: results.artist,
+                                        tracks: results.tracks
+                                    },
+                                    albumArt: results.albumArt
+                                })
 
                                 // Download album art from the image link. Ugh, needs a different function for discogs
-                                if (/discogs/.test(results.albumArt)) {
-                                    disco.getImage(results.albumArt, function (err, data) {
-                                        fs.writeFile('./public/images/albums/' + newAlbum._id + '.png', data, 'binary', function () {
-                                            console.log('Downloaded album art for ' + newAlbum.name);
-                                            res.render('album_form_filled', {
-                                                title: "Is this correct?",
-                                                album: newAlbum
-                                            })
-                                        })
-                                    })
-                                } else {
-                                    var download = function (url, filename, callback) {
-                                        request.head(url, function (err, res, body) {
-                                            request(url).pipe(fs.createWriteStream(filename)).on('close', callback);
-                                        });
-                                    }
-                                    var filename = "./public/images/albums/" + newAlbum._id + '.png';
-                                    download(results.albumArt, filename, function () {
-                                        console.log('Downloaded album art for ' + newAlbum.name);
-                                        res.render('album_form_filled', {
-                                            title: "Is this correct?",
-                                            album: newAlbum
-                                        })
-                                    });
-                                }
-
-
-
-
+                                // Actually, don't download yet. Come back to this. 
+                                // if (/discogs/.test(results.albumArt)) {
+                                //     disco.getImage(results.albumArt, function (err, data) {
+                                //         fs.writeFile('./public/images/albums/' + newAlbum._id + '.png', data, 'binary', function () {
+                                //             console.log('Downloaded album art for ' + newAlbum.name);
+                                //             res.render('album_form_filled', {
+                                //                 title: "Is this correct?",
+                                //                 album: newAlbum
+                                //             })
+                                //         })
+                                //     })
+                                // } else {
+                                //     var download = function (url, filename, callback) {
+                                //         request.head(url, function (err, res, body) {
+                                //             request(url).pipe(fs.createWriteStream(filename)).on('close', callback);
+                                //         });
+                                //     }
+                                //     var filename = "./public/images/albums/" + newAlbum._id + '.png';
+                                //     download(results.albumArt, filename, function () {
+                                //         console.log('Downloaded album art for ' + newAlbum.name);
+                                //         res.render('album_form_filled', {
+                                //             title: "Is this correct?",
+                                //             album: newAlbum
+                                //         })
+                                //     });
+                                // }
                             }
                         })
                 })
                 .catch((err) => {
-                    console.log("Error in getDiscogs " + JSON.stringify(err, null, 2));
+                    console.log("Error in getAlbumData: " + JSON.stringify(err, null, 2));
                     res.render('album_form', {
                         title: "Add new album",
                         message: "No album found, please try again"
@@ -173,45 +167,62 @@ exports.addAlbum = [
 
     // Process request
     (req, res, next) => {
+
         const errors = validationResult(req);
-
-        var newAlbum = new Album({
-            _id: req.body.id,
-            name: req.body.name,
-            artist: req.body.artist,
-            tracks: []
-        })
-
-        for (i = 0; i < req.body.trackNum.length; i++) {
-            newAlbum.tracks.push({
-                track_name: req.body.trackName[i],
-                track_number: req.body.trackNum[i],
-                track_length: (60 * parseInt(req.body.trackLength[i].split(":")[0])) + parseInt(req.body.trackLength[i].split(":")[1]),
-                track_side: req.body.trackSide[i]
-            })
-        }
-
         if (!errors.isEmpty()) {
-            // If error, render the album page again with sanitized values/error messages
+            // If error, render the form again with sanitized values/error messages
             res.render('album_form_filled', { title: 'Problem submitting album, please check info below:', album: newAlbum, errors: errors.array() });
-            return next(err);
+            return next(errors);
         } else {
-            // console.log(req.body)
-            // If any changes have been made to album details, submit as is. 
+            var newAlbum = new Album({
+                name: req.body.name,
+                artist: req.body.artist,
+                tracks: []
+            })
+
+            for (i = 0; i < req.body.trackNum.length; i++) {
+                newAlbum.tracks.push({
+                    track_name: req.body.trackName[i],
+                    track_number: req.body.trackNum[i],
+                    track_length: (60 * parseInt(req.body.trackLength[i].split(":")[0])) + parseInt(req.body.trackLength[i].split(":")[1]),
+                    track_side: req.body.trackSide[i]
+                })
+            }
+
             newAlbum
-                .save(function (err) {
-                    if (err) {
-                        console.log("Error saving new album" + err);
-                        throw new Error('Error saving new album')
+                .save()
+                .then(() => {
+                    if (/discogs/.test(req.body.albumArt)) {
+                        disco.getImage(req, body.albumArt, function (err, data) {
+                            fs.writeFile('./public/images/albums/' + newAlbum._id + '.png', data, 'binary', function () {
+                                console.log('Downloaded album art for ' + newAlbum.name);
+                                res.render('album_detail', {
+                                    message: "Album successfully added to database",
+                                    title: "Album",
+                                    album: newAlbum
+                                });
+                            })
+                        })
+                    } else {
+                        var download = function (url, filename, callback) {
+                            request.head(url, function (err, res, body) {
+                                request(url).pipe(fs.createWriteStream(filename)).on('close', callback);
+                            });
+                        }
+                        var filename = "./public/images/albums/" + newAlbum._id + '.png';
+                        download(req.body.albumArt, filename, function () {
+                            console.log('Downloaded album art for ' + newAlbum.name);
+                            res.render('album_detail', {
+                                message: "Album successfully added to database",
+                                title: "Album",
+                                album: newAlbum
+                            });
+                        });
                     }
-                    res.render('album_detail', {
-                        message: "Album successfully added to database",
-                        title: "Album",
-                        album: newAlbum
-                    });
-                });
+                })
         }
     }
+
 ]
 
 // Handle Author delete on POST.
@@ -223,7 +234,7 @@ exports.album_delete_post = function (req, res) {
             if (err) { return console.log("Error deleting album: " + err) }
             if (!results) { res.render('/', { message: "No album found to delete?" }) }
             console.log("Deleted " + results.name)
-            res.redirect('/');
+            res.redirect('/catalog');
             // res.render('/', { message: req.body.name + " successfully deleted"})
         })
 };

@@ -2,7 +2,7 @@ extends layout
 
 block content
     unless message===undefined
-    - console.log(message)
+    //- - console.log(message)
     script(src="https://cdn.jsdelivr.net/npm/sweetalert2@7.26.9/dist/sweetalert2.all.min.js")
     script.
         var msg = !{JSON.stringify(message)};
@@ -19,4 +19,4 @@ block content
     if error
         p Error getting  content.
 
-    script(src='javascripts/animateTiles.js')
+    script(src='/javascripts/animateTiles.js')

@@ -22,7 +22,7 @@ function getSpotify(nameSearch, artistSearch) {
                 // Save the access token so that it's used in future calls
                 spotifyApi.setAccessToken(data.body['access_token']);
 
-                spotifyApi.search("album:" + nameSearch + " artist:" + artistSearch, ["album"], {
+                spotifyApi.searchAlbums("album:" + nameSearch + "+artist:" + artistSearch, {
                     limit: 1
                 })
                     .then(function (result) {

@@ -21,8 +21,10 @@ block content
         div.form-group
             .row.flex-row-reverse
                 .col-md-4
-                    img#albumArt.img-fluid.img-thumbnail.rounded.mx-auto.d-block(style="max-width: 200px;" src='/images/albums/' + album._id + '.png') 
+                    //- input#albumArt.form-control.img-fluid.img-thumbnail.rounded.mx-auto.d-block(type="image" src=albumArt[0] onclick="nextPic()" style="max-width: 200px")
+                    img#albumArt.img-fluid.img-thumbnail.rounded.mx-auto.d-block(style="max-width: 200px;" src=albumArt[0] onclick=`nextPic()`) 
                 .col-md-8
+                    input#albumArtForm.form-control(type='hidden' name='albumArt' value = albumArt[0])
                     input#id.form-control(type='hidden' name='id' value=(undefined===album ? '' : album._id))
                     label(for='name') Album:
                     input#name.form-control(type='text', placeholder="Album name" name="name" value=(undefined===album ? '' : album.name))
@@ -87,3 +89,17 @@ block content
                 $(this).parent().parent().remove();
             })
         });
+    script(type="text/javascript").
+        var counter = 0;
+        console.log(!{JSON.stringify(albumArt)});
+        var images = !{JSON.stringify(albumArt)};
+        function nextPic() {
+            counter += 1;
+            if (counter >= images.length) {
+                counter = 0;
+            }
+            document.getElementById('albumArt').src = images[counter];
+            document.getElementById('albumArtForm').value = images[counter];
+        }
+
+    
