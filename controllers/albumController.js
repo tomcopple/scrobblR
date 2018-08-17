@@ -194,9 +194,12 @@ exports.addAlbum = [
 
             newAlbum
                 .save()
-                .then(() => {
+                .then( () => {
+                    console.log("Album art: " + req.body.albumArt);
                     if (/discogs/.test(req.body.albumArt)) {
-                        disco.getImage(req, body.albumArt, function (err, data) {
+                        console.log("Downloading discogs album art")
+                        
+                        disco.getImage(req.body.albumArt, function (err, data) {
                             fs.writeFile('./public/images/albums/' + newAlbum._id + '.png', data, 'binary', function () {
                                 console.log('Downloaded album art for ' + newAlbum.name);
                                 res.render('album_detail', {
