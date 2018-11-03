@@ -4,7 +4,7 @@
 function getDiscogs(nameSearch, artistSearch) {
 
     var getSpotify = require('./getSpotify.js');
-    var setDiscogs = require('../api/setDiscogs.api');
+    var setDiscogs = require('../api/setDiscogs.js');
 
     // Define a bunch of functions?
 
