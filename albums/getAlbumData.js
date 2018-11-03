@@ -17,7 +17,7 @@ function getAlbumData(albumName, artistName) {
     // Set some flags for info required
     var getTrackLength = true;
     var getTrackSide = true;
-    var getAlbumArt = true;
+    // var getAlbumArt = true;
 
     return new Promise((resolve, reject) => {
         // (1) Get Discogs Master Info
@@ -32,7 +32,7 @@ function getAlbumData(albumName, artistName) {
                     if (results.pagination.items === 0) {
                         // If no album found in Discogs, then abandon the whole thing
                         console.log("Discogs: nothing found, giving up.")
-                        reject("No discogs master found")
+                        throw "No discogs master found"
                     } else {
                         // Just take the first result
                         const result = results.results[[0]]
@@ -69,7 +69,15 @@ function getAlbumData(albumName, artistName) {
                                 resolve(newAlbum);
                             })
                     }
+                })
+                .catch( (e) => {
+                    console.log("Truing to catch error here: " + e)
+                    reject(e);
                 });
+            })
+            .catch( (e) => {
+                console.log("Or here? " + e)
+                reject(e);
             });
         };
 
@@ -142,7 +150,8 @@ function getAlbumData(albumName, artistName) {
                         spotifyApi.searchAlbums("album:" + albumName + " artist:" + artistName, { limit: 1 })
                             .then((results) => {
                                 console.log("Spotify results: " + JSON.stringify(results.body.albums.items, null, 2));
-                                if (results === undefined | results.length === 0) {
+                                console.log("Spotify results length: " + results.length)
+                                if (results === undefined | results.length === undefined | results.length === 0) {
                                     console.log("No Spotify album found");
                                     reject("No Spotify result");
                                 } else {
