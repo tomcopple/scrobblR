@@ -4,9 +4,9 @@ block content
     h1= title
 
     ul
-        each artist in artist_list
+        each artist in artists
             li
-                a(href=artist.artisturl) #{artist.artist}
+                a(href="/catalog/artist/" + artist) #{artist}
 
         else
             li No artists found

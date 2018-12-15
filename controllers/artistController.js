@@ -5,14 +5,17 @@ var Album = require('../models/albums.js')
 // Display list of all Authors.
 exports.artist_list = function(req, res) {
     Album
-        .find(
-            {},
-            'artist'
-        )
-        .sort({artist:1})
+        // .find(
+        //     {},
+        //     'artist'
+        // )
+        .distinct('artist', {})
+        // .sort({artist:1})
         .exec(function(err, artists) {
-            // console.log(artist)
-            res.render('artist_list', { title: "List of artists", artist_list: artists })
+            res.render('artist_list', { 
+                title: "List of artists", 
+                artists: artists.sort()
+            })
         })
 };
 

@@ -11,6 +11,7 @@ var setDiscogs = require('../api/setDiscogs');
 var Discogs = require('disconnect').Client;
 var disco = new Discogs(setDiscogs).database();
 var getAlbumData = require('../albums/getAlbumData');
+var getDiscogsId = require('../albums/getDiscogsId');
 
 const { body, validationResult } = require('express-validator/check');
 const { sanitizeBody } = require('express-validator/filter');
@@ -70,6 +71,8 @@ exports.album_create_post = [
 
     // Process request
     (req, res) => {
+        console.log("Looking for an album name + artist")
+
         // Extract validation errors
         const errors = validationResult(req);
         console.log(req.body.name, req.body.artist)
@@ -152,6 +155,65 @@ exports.album_create_post = [
                         message: "No album found, please try again"
                     })
                 })
+        }
+    }
+]
+
+exports.album_create_discogsid = [
+    // Check that it's just a number
+    body('discogs', 'Discogs ID should be a number').isNumeric().trim(),
+
+    sanitizeBody('discogs').trim(),
+
+    (req, res) => {
+        const errors = validationResult(req);
+
+        if(!errors.isEmpty()) {
+            res.render('album_form', { title: "Add new album", errors: errors.array() })
+            return;
+        } else {
+            getDiscogsId(req.body.discogs)
+                .then( (results) => {
+                    console.log("Check if album already exists");
+                    // Check if album already exists
+                    Album.findOne({
+                        'name': results.name,
+                        'artist': results.artist
+                    })
+                        .exec((err, found_album) => {
+                            if (err) {
+                                console.log("Error checking if album already exists " + err);
+                                return
+                            }
+                            if (found_album) {
+                                console.log("Found an existing album " + found_album);
+                                res.render('album_detail', {
+                                    message: "Album already exists in database, redirecting...",
+                                    title: "Album",
+                                    album: found_album
+                                });
+                            } else {
+                                console.log("New album info: " + JSON.stringify(results, null, 2));
+
+                                res.render('album_form_filled', {
+                                    title: "Is this correct?",
+                                    album: {
+                                        name: results.name,
+                                        artist: results.artist,
+                                        tracks: results.tracks
+                                    },
+                                    albumArt: results.albumArt
+                                })
+                            }
+                        })
+                    })
+                    .catch((err) => {
+                        console.log("Error in getAlbumData: " + JSON.stringify(err, null, 2));
+                        res.render('album_form', {
+                            title: "Add new album",
+                            message: "No album found, please try again"
+                        })
+                    })
         }
     }
 ]

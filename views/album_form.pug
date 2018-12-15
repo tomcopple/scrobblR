@@ -23,6 +23,14 @@ block content
     
     hr
 
+    //- Or allow for manual entry of discogs master number if it's not finding the right one
+
+    form(method='POST' action='/catalog/album/create/getDiscogsId')
+        .form-group
+            label(for="discogs") Or enter a discogs master id number: 
+            input#discogs.form-control(type='text', placeholder="Discogs id" name="discogs")
+            br
+        button.btn.btn-primary(type='submit') Submit discogs
     if errors 
         ul
           for error in errors

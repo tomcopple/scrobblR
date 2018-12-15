@@ -17,6 +17,9 @@ router.get('/album/create', album_controller.album_create_get);
 // POST request for creating album.
 router.post('/album/create', album_controller.album_create_post);
 
+// Testing lookup by discogs id
+router.post('/album/create/getDiscogsId', album_controller.album_create_discogsid);
+
 // POST request to add album to database
 router.post('/addAlbum', album_controller.addAlbum);
 

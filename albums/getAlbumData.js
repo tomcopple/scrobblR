@@ -39,6 +39,7 @@ function getAlbumData(albumName, artistName) {
 
                         var id = result.id;
                         console.log("Found a discogs master result for " + results.results[[0]].title);
+                        console.log(results.results)
 
                         // If there's master album art save
                         var albumArt = result.cover_image !== undefined ?
@@ -149,9 +150,9 @@ function getAlbumData(albumName, artistName) {
                         spotifyApi.setAccessToken(data.body['access_token']);
                         spotifyApi.searchAlbums("album:" + albumName + " artist:" + artistName, { limit: 1 })
                             .then((results) => {
-                                console.log("Spotify results: " + JSON.stringify(results.body.albums.items, null, 2));
-                                console.log("Spotify results length: " + results.length)
-                                if (results === undefined | results.length === undefined | results.length === 0) {
+                                // console.log("Spotify results: " + JSON.stringify(results.body.albums.items[0], null, 2));
+                                console.log("Spotify results length: " + results.body.albums.items.length)
+                                if (results.body.albums.items.length === undefined | results.body.albums.items.length === 0) {
                                     console.log("No Spotify album found");
                                     reject("No Spotify result");
                                 } else {
