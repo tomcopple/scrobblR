@@ -1,12 +1,15 @@
 extends layout
 
 block content
+    script
+        | console.log(!{JSON.stringify(title)});
+        | console.log(!{JSON.stringify(artistList)});
     h1= title
-
+    - console.log(artists)
     ul
-        each artist in artists
-            li
-                a(href="/catalog/artist/" + artist) #{artist}
+        // each artist in artists
+           // li
+             //   a(href="/catalog/artist/") #{artist}
 
-        else
-            li No artists found
+        // else
+           // li No artists found
