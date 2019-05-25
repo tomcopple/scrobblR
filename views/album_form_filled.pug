@@ -16,15 +16,15 @@ block content
     if subtitle
         h3 #{subtitle}
 
-    - console.log(edit) 
+    //- - console.log(edit) 
     form(method='POST' action= edit ? album.url+'/edit' : '/catalog/addAlbum')
         div.form-group
             .row.flex-row-reverse
                 .col-md-4
                     //- input#albumArt.form-control.img-fluid.img-thumbnail.rounded.mx-auto.d-block(type="image" src=albumArt[0] onclick="nextPic()" style="max-width: 200px")
-                    img#albumArt.img-fluid.img-thumbnail.rounded.mx-auto.d-block(style="max-width: 200px;" src=albumArt[0] onclick=`nextPic()`) 
+                    img#albumArt.img-fluid.img-thumbnail.rounded.mx-auto.d-block(style="max-width: 200px;" src='/images/albums/' + album._id + '.png' onclick=`nextPic()`) 
                 .col-md-8
-                    input#albumArtForm.form-control(type='hidden' name='albumArt' value = albumArt[0])
+                    input#albumArtForm.form-control(type='hidden' name='albumArt' value = album._id)
                     input#id.form-control(type='hidden' name='id' value=(undefined===album ? '' : album._id))
                     label(for='name') Album:
                     input#name.form-control(type='text', placeholder="Album name" name="name" value=(undefined===album ? '' : album.name))

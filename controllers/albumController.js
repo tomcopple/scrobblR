@@ -117,34 +117,6 @@ exports.album_create_post = [
                                     },
                                     albumArt: results.albumArt
                                 })
-
-                                // Download album art from the image link. Ugh, needs a different function for discogs
-                                // Actually, don't download yet. Come back to this. 
-                                // if (/discogs/.test(results.albumArt)) {
-                                //     disco.getImage(results.albumArt, function (err, data) {
-                                //         fs.writeFile('./public/images/albums/' + newAlbum._id + '.png', data, 'binary', function () {
-                                //             console.log('Downloaded album art for ' + newAlbum.name);
-                                //             res.render('album_form_filled', {
-                                //                 title: "Is this correct?",
-                                //                 album: newAlbum
-                                //             })
-                                //         })
-                                //     })
-                                // } else {
-                                //     var download = function (url, filename, callback) {
-                                //         request.head(url, function (err, res, body) {
-                                //             request(url).pipe(fs.createWriteStream(filename)).on('close', callback);
-                                //         });
-                                //     }
-                                //     var filename = "./public/images/albums/" + newAlbum._id + '.png';
-                                //     download(results.albumArt, filename, function () {
-                                //         console.log('Downloaded album art for ' + newAlbum.name);
-                                //         res.render('album_form_filled', {
-                                //             title: "Is this correct?",
-                                //             album: newAlbum
-                                //         })
-                                //     });
-                                // }
                             }
                         })
                 })
@@ -310,6 +282,7 @@ exports.album_delete_post = function (req, res) {
 // Display Author update form on GET.
 exports.album_update_get = function (req, res) {
     // res.render('album_form_filled', { title: "Edit album", album: newAlbum })
+    console.log("Edit album id:" + JSON.stringify(req.params.id))
     Album
         .findById(req.params.id)
         .exec(function (err, album) {
@@ -319,6 +292,7 @@ exports.album_update_get = function (req, res) {
                 err.status = 404;
                 return next(err);
             }
+            console.log("Found album " + album.name + " by " + album.artist)
             res.render('album_form_filled', {
                 title: 'Edit album details',
                 edit: true,
@@ -392,28 +366,20 @@ exports.album_reset = function (req, res) {
         .findById(req.params.id)
         .exec(function (err, result) {
 
-            getDiscogs(result.name, result.artist)
-                .then((results) => {
-                    var newAlbum = new Album({
-                        _id: req.params.id,
-                        name: results.album.name,
-                        artist: results.album.artist,
-                        tracks: results.album.tracks
-                    });
+            console.log("Checking Discogs first")
 
-                    Album
-                        .findByIdAndUpdate(req.params.id, newAlbum, {}, function (err) {
-                            if (err) {
-                                console.log("Error updating mongo with default values. " + err);
-                                return next(err);
-                            }
-                            res.render('album_detail', {
-                                message: "Album successfully reset to default",
-                                title: "Album",
-                                album: newAlbum,
-                                edit: false
-                            })
-                        })
+            getAlbumData(result.name, result.artist)
+                .then((results) => {
+
+                    res.render('album_form_filled', {
+                        title: "Default search results:",
+                        album: {
+                            name: results.name,
+                            artist: results.artist,
+                            tracks: results.tracks
+                        },
+                        albumArt: results.albumArt
+                    })
                 })
                 .catch((err) => {
                     res.render('album_form_filled', {

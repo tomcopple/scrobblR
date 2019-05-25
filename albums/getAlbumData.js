@@ -17,6 +17,7 @@ function getAlbumData(albumName, artistName) {
     // Set some flags for info required
     var getTrackLength = true;
     var getTrackSide = true;
+    var albumArt = [];
     // var getAlbumArt = true;
 
     return new Promise((resolve, reject) => {
@@ -39,16 +40,16 @@ function getAlbumData(albumName, artistName) {
 
                         var id = result.id;
                         console.log("Found a discogs master result for " + results.results[[0]].title);
-                        console.log(results.results)
+                        // console.log(results.results)
 
                         // If there's master album art save
-                        var albumArt = result.cover_image !== undefined ?
-                            result.cover_image :
-                            undefined
+                        if (result.cover_image !== undefined) {
+                            albumArt.push(result.cover_image)
+                        }
 
                         disco.getMaster(id)
                             .then((results) => {
-                                console.log("Downloaded discogs info for " + results.title)
+                                console.log("Downloaded discogs master info for " + results.title)
                                 var newAlbum = {
                                     name: results.title,
                                     artist: results.artists[0].name,
@@ -65,14 +66,14 @@ function getAlbumData(albumName, artistName) {
                                         }
                                     }),
                                     id: id,
-                                    albumArt: [albumArt]
+                                    albumArt: albumArt
                                 }
                                 resolve(newAlbum);
                             })
                     }
                 })
                 .catch( (e) => {
-                    console.log("Truing to catch error here: " + e)
+                    console.log("Trying to catch error here: " + e)
                     reject(e);
                 });
             })
@@ -98,29 +99,55 @@ function getAlbumData(albumName, artistName) {
                         })
                         console.log("Found " + findVinyl.length + (findVinyl.length === 1 ? " vinyl" : " vinyls"));
                         if (findVinyl.length > 0) {
-                            disco.getRelease(findVinyl[0].id)
-                                .then((res) => {
-                                    console.log("Found a vinyl match: " + res.title);
-                                    // Check for album art
-                                    if (res.images[[0]].resource_url !== undefined) {
-                                        newAlbum.albumArt.push(res.images[0].resource_url)
-                                    }
+                            
+                            let checkVinylNum = 1;
 
-                                    // Always take the version with the fewest tracks to avoid bonus tracks etc
-                                    let minTracks = Math.min(res.tracklist.length, newAlbum.tracks.length);
-                                    newAlbum.tracks = newAlbum.tracks.slice(0, minTracks);
-                                    res.tracklist
-                                        .slice(0, minTracks)
-                                        .forEach((track, index) => {
-                                            newAlbum.tracks[index].track_side = /^[A-Z]\d+$/.test(track.position) ?
-                                                track.position[0] :
-                                                undefined,
-                                            newAlbum.tracks[index].track_length = (newAlbum.tracks[index].track_length === undefined & /^\d+:\d{2}$/.test(track.duration)) ?
-                                                (60 * parseInt(track.duration.split(":")[0])) + parseInt(track.duration.split(":")[1]) :
-                                                undefined
-                                            newAlbum.tracks[index].track_name = track.title
-                                        });
-                                    resolve(newAlbum);
+                            // Define function to check vinyl release for side info
+                            function checkVinyl(checkVinylNum) {
+                                
+                                return new Promise( (resolve, reject) => {
+                                    console.log("Checking vinyl #" + checkVinylNum + "/" + findVinyl.length)
+                                    return disco.getRelease(findVinyl[checkVinylNum - 1].id, (err, res) => {
+                                        if (err) {
+                                            console.log("Error in getRelease: " + err)
+                                            reject(err);
+                                        }
+
+                                        // Check that every track has an album side as first letter
+                                        if (res.tracklist.every( (x) => {
+                                            console.log(x.position);
+                                            return /^[A-F]/.test(x.position)
+                                        })) {
+                                            console.log("Looks like it has side info")
+                                            let minTracks = Math.min(res.tracklist.length, newAlbum.tracks.length);
+                                            res.tracklist.slice(0, minTracks).forEach((track, index) => {
+                                                newAlbum.tracks[index].track_side = track.position[0];
+                                                newAlbum.tracks[index].track_length = (newAlbum.tracks[index].track_length === false & /^\d+:\d{2}$/.test(track.duration))
+                                                    ? (60 * parseInt(track.duration.split(":")[0])) + parseInt(track.duration.split(":")[1])
+                                                    : newAlbum.tracks[index].track_length
+                                            })
+                                            console.log("Returning album with side info");
+                                            resolve(newAlbum);
+                                        } else {
+                                            checkVinylNum++;
+                                            console.log("Checking next one")
+                                            if (checkVinylNum > findVinyl.length) {
+                                                console.log("Vinyl versions didn't have correct side info");
+                                                resolve(discogsAlbum);
+                                            }
+                                            checkVinyl(checkVinylNum)
+                                        }
+                                    })
+                                })
+                            }
+
+                            checkVinyl(checkVinylNum)
+                                .then( (result) => {
+                                    console.log("Found album, returning?")
+                                    resolve(result);
+                                })
+                                .catch((err) => {
+                                    console.log("Error in checkVinyl: " + err)
                                 })
                         } else {
                             console.log("No vinyl version found on Discogs");
@@ -195,7 +222,7 @@ function getAlbumData(albumName, artistName) {
         // Get Discogs master info
         getDiscogsMaster(albumName, artistName)
             .then((newAlbum) => {
-                console.log("Moving on to stage 2")
+                console.log("Moving on to stage 2: check track length and track sides")
                 getTrackLength = newAlbum.tracks.some((e) => {
                     return e.track_length === undefined;
                 });
@@ -204,7 +231,7 @@ function getAlbumData(albumName, artistName) {
                 });
 
                 if (getTrackSide) {
-                    console.log("Need to get Track Side")
+                    console.log("Need to get Track Sides")
                     getDiscogsVinyl(newAlbum)
                         .then((newAlbum) => {
                             getTrackLength = newAlbum.tracks.some((e) => {
