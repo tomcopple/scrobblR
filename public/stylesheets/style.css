@@ -186,8 +186,8 @@ a.article.hover {
     }
 
     #content.active img.albumTiles {
-        max-width: 125px;
-        max-height: 125px;
+        max-width: 75px;
+        max-height: 75px;
     }
 
     .albumTiles {
