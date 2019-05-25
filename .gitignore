@@ -2,6 +2,7 @@
 node_modules
 @eaDir
 api
+.env
 
 .gitsecret/keys/random_seed
 albums/test

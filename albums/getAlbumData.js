@@ -10,9 +10,12 @@
 
 function getAlbumData(albumName, artistName) {
 
-    var setDiscogs = require('../api/setDiscogs');
+    // var setDiscogs = require('../api/setDiscogs');
     var Discogs = require('disconnect').Client;
-    var disco = new Discogs(setDiscogs).database();
+    var disco = new Discogs({
+        consumerKey: process.env.consumerKey,
+        consumerSecret: process.env.consumerSecret
+    }).database();
 
     // Set some flags for info required
     var getTrackLength = true;
@@ -167,9 +170,12 @@ function getAlbumData(albumName, artistName) {
             console.log("Getting Spotify");
 
             return new Promise((resolve, reject) => {
-                var setSpotify = require("../api/setSpotify");
+                // var setSpotify = require("../api/setSpotify");
                 var SpotifyWebApi = require('spotify-web-api-node');
-                var spotifyApi = new SpotifyWebApi(setSpotify);
+                var spotifyApi = new SpotifyWebApi({
+                    clientId: process.env.clientId,
+                    clientSecret: process.env.clientSecret
+                });
 
                 spotifyApi
                     .clientCredentialsGrant()

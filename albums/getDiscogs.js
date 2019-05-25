@@ -4,13 +4,16 @@
 function getDiscogs(nameSearch, artistSearch) {
 
     var getSpotify = require('./getSpotify.js');
-    var setDiscogs = require('../api/setDiscogs.js');
+    // var setDiscogs = require('../api/setDiscogs.js');
 
     return new Promise((resolve, reject) => {
 
         // Authenticate
         var Discogs = require('disconnect').Client;
-        var disco = new Discogs(setDiscogs).database();
+        var disco = new Discogs({
+            consumerKey: process.env.consumerKey,
+            consumerSecret: process.env.consumerSecret
+        }).database();
         var albumArt = [];
 
         // Test search data
