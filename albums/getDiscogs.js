@@ -91,6 +91,18 @@ function getDiscogs(nameSearch, artistSearch) {
                                                 discogsAlbum.tracks[index].track_length = (discogsAlbum.tracks[index].track_length === false & /^\d+:\d{2}$/.test(track.duration))
                                                     ? (60 * parseInt(track.duration.split(":")[0])) + parseInt(track.duration.split(":")[1])
                                                     : discogsAlbum.tracks[index].track_length
+                                                                })
+
+                                                                console.log("Returning album with side info");
+                                                                needVinyl = false;
+                                                                resolve(discogsAlbum);
+                                                            } else {
+                                                                    needVinyl = true;
+                                                                    checkVinyl ++;
+                                                                    resolve();
+                                                                }
+
+                                                                
                                             });
                                             return discogsAlbum;
                                         })
