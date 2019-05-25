@@ -191,8 +191,8 @@ a.article.hover {
     }
 
     .albumTiles {
-        max-width: 150px;
-        max-height: 150px;
+        max-width: 95px;
+        max-height: 95px;
     }
     #albumArt {
         margin-right: auto;
