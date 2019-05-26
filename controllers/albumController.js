@@ -74,11 +74,10 @@ exports.album_create_post = [
 
     // Process request
     (req, res) => {
-        console.log("Looking for an album name + artist")
+        console.log("Looking for " + req.body.name + " by " + req.body.artist)
 
         // Extract validation errors
         const errors = validationResult(req);
-        console.log(req.body.name, req.body.artist)
 
         // This is where we will find the album information
         if (!errors.isEmpty()) {

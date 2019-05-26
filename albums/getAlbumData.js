@@ -8,268 +8,244 @@
 // Shouldn't be any need for callbacks?
 // Define functions here first, then move to their own files for simplicity. 
 
+
 function getAlbumData(albumName, artistName) {
 
-    // var setDiscogs = require('../api/setDiscogs');
+    // Import modules and set authenticaion
+    // 1. Discogs
     var Discogs = require('disconnect').Client;
-    var disco = new Discogs({
+    var discogsAuth = {
         consumerKey: process.env.consumerKey,
         consumerSecret: process.env.consumerSecret
-    }).database();
+    }
+    var disco = new Discogs(discogsAuth).database();
 
-    // Set some flags for info required
-    var getTrackLength = true;
-    var getTrackSide = true;
+
+    // 2. Spotify
+    var SpotifyWebApi = require('spotify-web-api-node');
+    var spotifyAuth = {
+        clientId: process.env.clientId,
+        clientSecret: process.env.clientSecret
+    }
+    // Every time you find album art push it here
+    var albumArt = [];
+
+    // Function (1): get Discogs Master ID
+    function getDiscogsMasterID(searchAlbum, searchArtist) {
+        return new Promise( (resolve, reject) => {
+            disco.search({}, {
+                type: 'master',
+                release_title: searchAlbum,
+                artist: searchArtist
+            }).then( (results) => {
+
+                // If no results
+                if (results.pagination.items === 0) {
+                    console.log("No discogs result at all")
+                    reject(new Error("No discogs master found"))
+                } else {
+                   // Otherwise take the first result 
+                   const result = results.results[[0]]
+                   const id = result.id;
+                   console.log("Found a discogs master result for " + result.title);
+
+                   // If there's any master album art save it
+                   if (result.cover_image !== undefined) {
+                       albumArt.push(result.cover_image)
+                   }
+                   console.log("Returning id: " + id);
+
+                   resolve(id);
+                }
+            })
+        })
+    }
+
+    // Function (2): Lookup Master ID and return Album Model
+    function getDiscogsAlbum(id) {
+        return new Promise( (resolve, reject) => {
+            disco.getMaster(id)
+                .then( (results) => {
+                    console.log("Downloaded discogs master info for " + results.title)
+
+                    // save any album art
+                    
+                    var newAlbum = {
+                        name: results.title,
+                        artist: results.artists[0].name,
+                        tracks: results.tracklist.map((track, index) => {
+                            return {
+                                track_name: track.title,
+                                track_length: /^\d+:\d{2}$/.test(track.duration) ?
+                                    (60 * parseInt(track.duration.split(":")[0])) + parseInt(track.duration.split(":")[1]) :
+                                    undefined,
+                                track_number: index + 1,
+                                track_side: /^[A-Z]\d+$/.test(track.position) ?
+                                    track.position[0] :
+                                    undefined
+                            }
+                        }),
+                        id: id,
+                        albumArt: albumArt
+                    }
+                    resolve(newAlbum);
+                })
+            });
+    }
+
+    // Function (3): Look for vinyl versions
+    // Takes newAlbum as parameter and returns newAlbum
+    function getDiscogsVinyl(newAlbum) {
+
+        return new Promise((resolve, reject) => {
+
+            console.log("Looking up vinyl version");
+
+            // This promise doesn't seem to work, use callback instead
+            disco.getMasterVersions(newAlbum.id)
+                .then((results) => {
+                    console.log("Found " + results.pagination.items + " results");
+                    var findVinyl = results.versions.filter((x) => {
+                        return /lp|LP|Vinyl|vinyl|VINYL/.test(x.format)
+                    })
+                    console.log("Found " + findVinyl.length + (findVinyl.length === 1 ? " vinyl" : " vinyls"));
+                    if (findVinyl.length > 0) {
+                        
+                        let checkVinylNum = 1;
+
+                        // Define function to check vinyl release for side info
+                        function checkVinyl(checkVinylNum) {
+                            
+                            return new Promise( (resolve, reject) => {
+                                console.log("Checking vinyl #" + checkVinylNum + "/" + findVinyl.length)
+                                return disco.getRelease(findVinyl[checkVinylNum - 1].id, (err, res) => {
+                                    if (err) {
+                                        console.log("Error in getRelease: " + err)
+                                        reject(err);
+                                    }
+
+                                    // Check that every track has an album side as first letter
+                                    if (res.tracklist.every( (x) => {
+                                        // console.log(x.position);
+                                        return /^[A-F]/.test(x.position)
+                                    })) {
+                                        console.log("Looks like it has side info")
+                                        let minTracks = Math.min(res.tracklist.length, newAlbum.tracks.length);
+                                        res.tracklist.slice(0, minTracks).forEach((track, index) => {
+                                            newAlbum.tracks[index].track_side = track.position[0];
+                                            newAlbum.tracks[index].track_length = (newAlbum.tracks[index].track_length === false & /^\d+:\d{2}$/.test(track.duration))
+                                                ? (60 * parseInt(track.duration.split(":")[0])) + parseInt(track.duration.split(":")[1])
+                                                : newAlbum.tracks[index].track_length
+                                        })
+                                        console.log("Returning album with side info");
+                                        resolve(newAlbum);
+                                    } else {
+                                        checkVinylNum++;
+                                        console.log("Checking next one")
+                                        if (checkVinylNum > findVinyl.length) {
+                                            console.log("Vinyl versions didn't have correct side info");
+                                            resolve(discogsAlbum);
+                                        }
+                                        checkVinyl(checkVinylNum)
+                                    }
+                                })
+                            })
+                        }
+
+                        checkVinyl(checkVinylNum)
+                            .then( (result) => {
+                                console.log("Finished checking vinyl, returning")
+                                resolve(result);
+                            })
+                            .catch((err) => {
+                                console.log("Error in checkVinyl: " + err)
+                            })
+                    } else {
+                        console.log("No vinyl version found on Discogs");
+                        reject("No vinyl version found");
+                    }
+                })
+                .catch((err) => {
+                    console.log("Error in disco.getMasterVersions: " + err);
+                })
+        })
+    }
+
+    function getSpotify(newAlbum) {
+        console.log("Getting Spotify");
+
+        return new Promise( (resolve, reject) => {
+            var spotifyApi = new SpotifyWebApi(spotifyAuth);
+            spotifyApi
+            .clientCredentialsGrant()
+            .then( (data) => {
+                spotifyApi.setAccessToken(data.body['access_token']);
+                spotifyApi.searchAlbums("album:" + albumName + " artist:" + artistName, { limit: 1 })
+                .then( (results) => {
+                    // console.log("Found " + results.body.albums.items.length + " Spotify results");
+                    if (results.body.albums.items.length === undefined | results.body.albums.items.length === 0) {
+                        console.log("No spotify album found");
+                        reject(new Error('No Spotify results'));
+                    } else {
+                        const result = results.body.albums.items[0];
+                        console.log("Found Spotify album " + result.name);
+
+                        // Add image to front of newAlbum.albumArt
+                        if (result.images.filter(x => x.height === 300).length > 0) {
+                            let image = result.images.filter(x => x.height === 300)
+                            newAlbum.albumArt.unshift(image[0].url)
+                        }
+
+                        // Then look for album tracks
+                        spotifyApi
+                        .getAlbumTracks(result.id)
+                        .then( (results) => {
+                            console.log("Found Spotify tracks info for " + result.name + " with " + results.body.items.length + " tracks");
+                            let minTracks = Math.min(newAlbum.tracks.length, results.body.items.length)
+                            newAlbum.tracks = newAlbum.tracks.slice(0, minTracks);
+                            results.body.items
+                            .slice(0, minTracks)
+                            .forEach((track, index) => {
+                                // console.log(track);
+                                newAlbum.tracks[index].track_length = newAlbum.tracks[index].track_length === undefined ?
+                                    Math.round(track.duration_ms / 1000) :
+                                    newAlbum.tracks[index].track_length;
+                                newAlbum.tracks[index].track_name = track.name
+                                // console.log(index + ": " + newAlbum.tracks[index].track_name + ": " + newAlbum.tracks[index].track_length);
+                                if(index === minTracks - 1) { 
+                                    console.log("Returning from Spotify track search")
+                                    resolve(newAlbum)}
+                            });
+                        })
+                    }
+                })
+            })
+        })
+    }
+
     var albumArt = [];
     // var getAlbumArt = true;
 
     return new Promise((resolve, reject) => {
-        // (1) Get Discogs Master Info
-        function getDiscogsMaster(albumName, artistName) {
-
-            return new Promise((resolve, reject) => {
-                disco.search({}, {
-                    type: 'master',
-                    release_title: albumName,
-                    artist: artistName
-                }).then((results) => {
-                    if (results.pagination.items === 0) {
-                        // If no album found in Discogs, then abandon the whole thing
-                        console.log("Discogs: nothing found, giving up.")
-                        throw "No discogs master found"
-                    } else {
-                        // Just take the first result
-                        const result = results.results[[0]]
-
-                        var id = result.id;
-                        console.log("Found a discogs master result for " + results.results[[0]].title);
-                        // console.log(results.results)
-
-                        // If there's master album art save
-                        if (result.cover_image !== undefined) {
-                            albumArt.push(result.cover_image)
-                        }
-
-                        disco.getMaster(id)
-                            .then((results) => {
-                                console.log("Downloaded discogs master info for " + results.title)
-                                var newAlbum = {
-                                    name: results.title,
-                                    artist: results.artists[0].name,
-                                    tracks: results.tracklist.map((track, index) => {
-                                        return {
-                                            track_name: track.title,
-                                            track_length: /^\d+:\d{2}$/.test(track.duration) ?
-                                                (60 * parseInt(track.duration.split(":")[0])) + parseInt(track.duration.split(":")[1]) :
-                                                undefined,
-                                            track_number: index + 1,
-                                            track_side: /^[A-Z]\d+$/.test(track.position) ?
-                                                track.position[0] :
-                                                undefined
-                                        }
-                                    }),
-                                    id: id,
-                                    albumArt: albumArt
-                                }
-                                resolve(newAlbum);
-                            })
-                    }
-                })
-                .catch( (e) => {
-                    console.log("Trying to catch error here: " + e)
-                    reject(e);
-                });
-            })
-            .catch( (e) => {
-                console.log("Or here? " + e)
-                reject(e);
-            });
-        };
-
-        // (2) Look for vinyl version
-        function getDiscogsVinyl(newAlbum) {
-
-            return new Promise((resolve, reject) => {
-
-                console.log("Don't have vinyl info yet, looking up vinyl version");
-
-                // This promise doesn't seem to work, use callback instead
-                disco.getMasterVersions(newAlbum.id)
-                    .then((results) => {
-                        console.log("Found " + results.pagination.items + " results");
-                        var findVinyl = results.versions.filter((x) => {
-                            return /lp|LP|Vinyl|vinyl|VINYL/.test(x.format)
-                        })
-                        console.log("Found " + findVinyl.length + (findVinyl.length === 1 ? " vinyl" : " vinyls"));
-                        if (findVinyl.length > 0) {
-                            
-                            let checkVinylNum = 1;
-
-                            // Define function to check vinyl release for side info
-                            function checkVinyl(checkVinylNum) {
-                                
-                                return new Promise( (resolve, reject) => {
-                                    console.log("Checking vinyl #" + checkVinylNum + "/" + findVinyl.length)
-                                    return disco.getRelease(findVinyl[checkVinylNum - 1].id, (err, res) => {
-                                        if (err) {
-                                            console.log("Error in getRelease: " + err)
-                                            reject(err);
-                                        }
-
-                                        // Check that every track has an album side as first letter
-                                        if (res.tracklist.every( (x) => {
-                                            console.log(x.position);
-                                            return /^[A-F]/.test(x.position)
-                                        })) {
-                                            console.log("Looks like it has side info")
-                                            let minTracks = Math.min(res.tracklist.length, newAlbum.tracks.length);
-                                            res.tracklist.slice(0, minTracks).forEach((track, index) => {
-                                                newAlbum.tracks[index].track_side = track.position[0];
-                                                newAlbum.tracks[index].track_length = (newAlbum.tracks[index].track_length === false & /^\d+:\d{2}$/.test(track.duration))
-                                                    ? (60 * parseInt(track.duration.split(":")[0])) + parseInt(track.duration.split(":")[1])
-                                                    : newAlbum.tracks[index].track_length
-                                            })
-                                            console.log("Returning album with side info");
-                                            resolve(newAlbum);
-                                        } else {
-                                            checkVinylNum++;
-                                            console.log("Checking next one")
-                                            if (checkVinylNum > findVinyl.length) {
-                                                console.log("Vinyl versions didn't have correct side info");
-                                                resolve(discogsAlbum);
-                                            }
-                                            checkVinyl(checkVinylNum)
-                                        }
-                                    })
-                                })
-                            }
-
-                            checkVinyl(checkVinylNum)
-                                .then( (result) => {
-                                    console.log("Found album, returning?")
-                                    resolve(result);
-                                })
-                                .catch((err) => {
-                                    console.log("Error in checkVinyl: " + err)
-                                })
-                        } else {
-                            console.log("No vinyl version found on Discogs");
-                            reject("No vinyl version found");
-                        }
-                    })
-                    .catch((err) => {
-                        console.log("Error in disco.getMasterVersions: " + err);
-                    })
-            })
-        }
-
-        // (3) Get track times and album art from Spotify
-        // NB Spotify is preferred artwork, so unshift() rather than push()
-        // Only call this function if(getTrackLength)
-        function getSpotify(newAlbum) {
-            console.log("Getting Spotify");
-
-            return new Promise((resolve, reject) => {
-                // var setSpotify = require("../api/setSpotify");
-                var SpotifyWebApi = require('spotify-web-api-node');
-                var spotifyApi = new SpotifyWebApi({
-                    clientId: process.env.clientId,
-                    clientSecret: process.env.clientSecret
-                });
-
-                spotifyApi
-                    .clientCredentialsGrant()
-                    .then((data) => {
-                        spotifyApi.setAccessToken(data.body['access_token']);
-                        spotifyApi.searchAlbums("album:" + albumName + " artist:" + artistName, { limit: 1 })
-                            .then((results) => {
-                                // console.log("Spotify results: " + JSON.stringify(results.body.albums.items[0], null, 2));
-                                console.log("Spotify results length: " + results.body.albums.items.length)
-                                if (results.body.albums.items.length === undefined | results.body.albums.items.length === 0) {
-                                    console.log("No Spotify album found");
-                                    reject("No Spotify result");
-                                } else {
-                                    const result = results.body.albums.items[0];
-                                    console.log("Found Spotify album " + result.name);
-
-                                    if (result.images.filter(x => x.height === 300).length > 0) {
-                                        let image = result.images.filter(x => x.height === 300)
-                                        newAlbum.albumArt.unshift(image[0].url)
-                                    }
-
-                                    spotifyApi
-                                        .getAlbumTracks(result.id)
-                                        .then((results) => {
-                                            console.log("Found Spotify info for " + result.name + " with " + results.body.items.length + " tracks");
-                                            let minTracks = Math.min(newAlbum.tracks.length, results.body.items.length)
-                                            newAlbum.tracks = newAlbum.tracks.slice(0, minTracks);
-                                            results.body.items
-                                                .slice(0, minTracks)
-                                                .forEach((track, index) => {
-                                                    // console.log(track);
-                                                    newAlbum.tracks[index].track_length = newAlbum.tracks[index].track_length === undefined ?
-                                                        Math.round(track.duration_ms / 1000) :
-                                                        newAlbum.tracks[index].track_length;
-                                                    newAlbum.tracks[index].track_name = track.name
-                                                    // console.log(index + ": " + newAlbum.tracks[index].track_name + ": " + newAlbum.tracks[index].track_length);
-                                                    if(index === minTracks - 1) { return(resolve(newAlbum))}
-                                                });
-                                        })
-                                }
-                            });
-                    })
-                    .catch( (err) => {
-                        console.log("Error in SpotifyApi function: " + err);
-                        resolve(newAlbum);
-                    })
-            });
-        }
-
+        
         // Get Discogs master info
-        getDiscogsMaster(albumName, artistName)
-            .then((newAlbum) => {
-                console.log("Moving on to stage 2: check track length and track sides")
-                getTrackLength = newAlbum.tracks.some((e) => {
-                    return e.track_length === undefined;
-                });
-                getTrackSide = newAlbum.tracks.some((e) => {
-                    return e.track_side === undefined;
-                });
-
-                if (getTrackSide) {
-                    console.log("Need to get Track Sides")
+        getDiscogsMasterID(albumName, artistName)
+            .then( (id) => {
+                getDiscogsAlbum(id)
+                .then( (newAlbum) => {
                     getDiscogsVinyl(newAlbum)
-                        .then((newAlbum) => {
-                            getTrackLength = newAlbum.tracks.some((e) => {
-                                return e.track_length === undefined;
-                            });
-
-                            if (getTrackLength) {
-                                getSpotify(newAlbum)
-                                    .then((res) => resolve(res))
-                                    .catch((e) => {
-                                        console.log("Error in getSpotify: " + e);
-                                        resolve(newAlbum)
-                                    })
-                            }
+                    .then( (newAlbum) => {
+                        getSpotify(newAlbum)
+                        .then( (newAlbum) => {
+                            resolve(newAlbum)
                         })
-                        .catch((e) => {
-                            console.log("Error in getDiscogsVinyl");
-                            reject("Discogs error");
-                        })
-                } else {
-                    console.log("Don't need to get vinyl info")
-                    getSpotify(newAlbum)
-                    .then((res) => resolve(res))
-                    .catch((e) => {
-                        console.log("Error in getSpotify: " + e);
-                        resolve(newAlbum);
-                    });
-                    
-                }
+                    })
+                })
+             })
+            .catch( (e) => {
+                reject(e)
             })
-    });
-
-}
+        });      
+    }
 // getAlbumData('boys and girls', 'alabama shakes')
 module.exports = getAlbumData;
