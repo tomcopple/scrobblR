@@ -193,6 +193,7 @@ function getAlbumData(albumName, artistName) {
                         // Add image to front of newAlbum.albumArt
                         if (result.images.filter(x => x.height === 300).length > 0) {
                             let image = result.images.filter(x => x.height === 300)
+                            console.log(JSON.stringify(image));
                             newAlbum.albumArt.unshift(image[0].url)
                         }
 
