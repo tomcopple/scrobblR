@@ -24,7 +24,7 @@
     "morgan": "~1.9.0",
     "node-vibrant": "^3.0.0",
     "npm": "^6.4.1",
-    "pug": "2.0.0-beta11",
+    "pug": "3.0.1",
     "request": "^2.87.0",
     "slideout": "^1.0.1",
     "spotify-web-api-node": "^3.1.1",
