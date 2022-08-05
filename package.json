@@ -20,7 +20,7 @@
     "http-errors": "~1.6.2",
     "jsonfile": "^4.0.0",
     "lastfmapi": "^0.1.1",
-    "mongoose": "^5.2.5",
+    "mongoose": "^5.7.5",
     "morgan": "~1.9.0",
     "node-vibrant": "^3.0.0",
     "npm": "^6.4.1",
